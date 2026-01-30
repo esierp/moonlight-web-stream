@@ -18,12 +18,13 @@ use tokio::{
 
 use crate::{
     api_bindings::{StreamClientMessage, StreamServerMessage},
-    config::WebRtcConfig,
+    config::{VideoConfig, WebRtcConfig},
 };
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct StreamerConfig {
     pub webrtc: WebRtcConfig,
+    pub video: VideoConfig,
     pub log_level: LevelFilter,
 }
 

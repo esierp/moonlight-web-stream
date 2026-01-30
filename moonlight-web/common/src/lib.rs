@@ -21,6 +21,7 @@ pub struct StreamSettings {
     pub video_colorspace: Colorspace,
     pub video_color_range_full: bool,
     pub hdr: bool,
+    pub reencode: Option<api_bindings::ReencodeSettings>,
 }
 
 impl Display for StreamSettings {
