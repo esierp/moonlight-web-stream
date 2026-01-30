@@ -25,6 +25,10 @@ export type StreamStatsData = {
     browserRtt: number | null
     incomingKbps: number | null
     outgoingKbps: number | null
+    clientTargetBitrateKbps: number | null
+    adaptiveEnabled: boolean | null
+    adaptiveMinKbps: number | null
+    adaptiveMaxKbps: number | null
     transport: Record<string, string>
 }
 
@@ -41,6 +45,8 @@ export function streamStatsToText(statsData: StreamStatsData): string {
 video information: ${statsData.videoCodec}, ${statsData.videoWidth}x${statsData.videoHeight}, ${statsData.videoFps} fps
 HDR: ${statsData.hdrEnabled === true ? "Enabled" : statsData.hdrEnabled === false ? "Disabled" : "Unknown"}
 server transcode: ${statsData.transcodeEnabled === true ? "On" : statsData.transcodeEnabled === false ? "Off" : "Unknown"} ${statsData.transcodeCodec ? `(${statsData.transcodeCodec})` : ""} ${statsData.transcodeBitrateKbps ? `${statsData.transcodeBitrateKbps} kbps` : ""}
+client target bitrate: ${num(statsData.clientTargetBitrateKbps, " kbps")}
+adaptive re-encode: ${statsData.adaptiveEnabled === true ? "On" : statsData.adaptiveEnabled === false ? "Off" : "Unknown"} ${statsData.adaptiveMinKbps != null && statsData.adaptiveMaxKbps != null ? `(min ${statsData.adaptiveMinKbps} / max ${statsData.adaptiveMaxKbps} kbps)` : ""}
 video pipeline: ${statsData.videoPipeline}
 audio pipeline: ${statsData.audioPipeline}
 streamer round trip time: ${num(statsData.streamerRttMs, "ms")} (variance: ${num(statsData.streamerRttVarianceMs, "ms")})
@@ -95,6 +101,10 @@ export class StreamStats {
         browserRtt: null,
         incomingKbps: null,
         outgoingKbps: null,
+        clientTargetBitrateKbps: null,
+        adaptiveEnabled: null,
+        adaptiveMinKbps: null,
+        adaptiveMaxKbps: null,
         transport: {}
     }
 
@@ -115,6 +125,17 @@ export class StreamStats {
         this.statsData.transcodeCodec = codec
         this.statsData.transcodeBitrateKbps = bitrateKbps
     }
+
+    setClientTargetBitrateKbps(bitrateKbps: number | null) {
+        this.statsData.clientTargetBitrateKbps = bitrateKbps
+    }
+
+    setAdaptiveBitrateConfig(enabled: boolean, minKbps: number, maxKbps: number) {
+        this.statsData.adaptiveEnabled = enabled
+        this.statsData.adaptiveMinKbps = minKbps
+        this.statsData.adaptiveMaxKbps = maxKbps
+    }
+
     private checkEnabled() {
         if (this.enabled) {
             if (this.statsChannel) {

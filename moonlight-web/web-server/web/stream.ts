@@ -79,6 +79,7 @@ class ViewerApp implements Component {
     private statsDiv = document.createElement("div")
     private statsText = document.createElement("pre")
     private statsCanvas = document.createElement("canvas")
+    private statsAdaptive = document.createElement("div")
     private incomingBandwidthHistory: number[] = []
     private outgoingBandwidthHistory: number[] = []
     private stream: Stream | null = null
@@ -184,8 +185,10 @@ class ViewerApp implements Component {
         this.statsDiv.classList.add("video-stats")
         this.statsText.classList.add("video-stats-text")
         this.statsCanvas.classList.add("video-stats-graph")
+        this.statsAdaptive.classList.add("video-stats-adaptive")
         this.statsDiv.appendChild(this.statsText)
         this.statsDiv.appendChild(this.statsCanvas)
+        this.statsDiv.appendChild(this.statsAdaptive)
 
         setInterval(() => {
             // Update stats display every 100ms
@@ -201,6 +204,21 @@ class ViewerApp implements Component {
                     this.pushBandwidthSample(current.incomingKbps, current.outgoingKbps)
                     this.renderBandwidthGraph()
                 }
+
+                const targetKbps = current.clientTargetBitrateKbps ?? this.settings.serverReencodeBitrateKbps ?? this.settings.bitrate
+                const observedKbps = current.outgoingKbps ?? current.incomingKbps
+                const adaptiveState = current.adaptiveEnabled === true ? "on" : current.adaptiveEnabled === false ? "off" : "unknown"
+                const minKbps = current.adaptiveMinKbps
+                const maxKbps = current.adaptiveMaxKbps
+                const delta = (observedKbps != null && targetKbps != null)
+                    ? `${observedKbps >= targetKbps ? "+" : ""}${Math.round(observedKbps - targetKbps)} kbps`
+                    : "n/a"
+
+                const adaptiveRange = (minKbps != null && maxKbps != null)
+                    ? `${minKbps}–${maxKbps} kbps`
+                    : "n/a"
+
+                this.statsAdaptive.innerText = `Adaptive: ${adaptiveState} (${adaptiveRange})\nTarget: ${targetKbps ?? "n/a"} kbps | Observed: ${observedKbps ?? "n/a"} kbps | Δ ${delta}`
             } else {
                 this.statsDiv.hidden = true
             }

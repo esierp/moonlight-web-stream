@@ -779,6 +779,20 @@ input[type=number] {
     color: #e0e0ff;
 }
 
+.settings-submenu {
+    margin: 8px 0 12px;
+    padding: 6px 10px;
+    border: 1px solid rgba(0, 212, 255, 0.25);
+    border-radius: 8px;
+    background: rgba(0, 0, 0, 0.15);
+}
+
+.settings-submenu > summary {
+    cursor: pointer;
+    font-weight: 600;
+    margin-bottom: 6px;
+}
+
 .host-actions {
     display: flex;
     gap: var(--space-xs);
@@ -1251,6 +1265,16 @@ canvas.video-stream {
     margin-top: 6px;
     border: 1px solid rgba(0, 247, 255, 0.4);
     border-radius: 6px;
+}
+
+.video-stats-adaptive {
+    margin-top: 6px;
+    padding: 6px 8px;
+    border-radius: 6px;
+    background: rgba(0, 0, 0, 0.45);
+    border: 1px solid rgba(0, 247, 255, 0.3);
+    font-size: clamp(10px, 2.1vw, 13px);
+    white-space: pre-line;
 }
 
 .sidebar-stream {

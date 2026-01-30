@@ -542,6 +542,20 @@ input[type=number] {
     color: white;
 }
 
+.settings-submenu {
+    margin: 8px 0 12px;
+    padding: 6px 10px;
+    border: 1px solid rgba(255, 255, 0, 0.25);
+    border-radius: 8px;
+    background: rgba(0, 0, 0, 0.15);
+}
+
+.settings-submenu > summary {
+    cursor: pointer;
+    font-weight: 600;
+    margin-bottom: 6px;
+}
+
 /** Hosts */
 .host-add {
     background-image: url("../resources/ic_add_to_queue_white_48px.svg");
@@ -708,6 +722,16 @@ canvas.video-stream {
     margin-top: 6px;
     border: 1px solid rgba(255, 255, 0, 0.4);
     border-radius: 6px;
+}
+
+.video-stats-adaptive {
+    margin-top: 6px;
+    padding: 6px 8px;
+    border-radius: 6px;
+    background: rgba(0, 0, 0, 0.45);
+    border: 1px solid rgba(255, 255, 0, 0.3);
+    font-size: clamp(10px, 2.1vw, 13px);
+    white-space: pre-line;
 }
 
 .sidebar-stream {
