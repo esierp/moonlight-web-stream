@@ -135,6 +135,12 @@ export class Stream implements Component {
 
         // Stream Stats
         this.stats = new StreamStats()
+        this.stats.setClientTargetBitrateKbps(this.settings.serverReencodeBitrateKbps ?? this.settings.bitrate)
+        this.stats.setAdaptiveBitrateConfig(
+            this.settings.adaptiveBitrateEnabled,
+            this.settings.adaptiveBitrateMinKbps,
+            this.settings.adaptiveBitrateMaxKbps
+        )
     }
 
     private debugLog(message: string, additional?: LogMessageInfo) {
@@ -755,6 +761,7 @@ export class Stream implements Component {
     async updateBitrateKbps(bitrateKbps: number): Promise<void> {
         this.settings.serverReencodeEnabled = true
         this.settings.serverReencodeBitrateKbps = bitrateKbps
+        this.stats.setClientTargetBitrateKbps(bitrateKbps)
         this.debugLog(`Updating webclient bitrate to ${bitrateKbps} kbps (server re-encode)`) 
 
         this.sendWsMessage({

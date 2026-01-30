@@ -79,6 +79,7 @@ class ViewerApp implements Component {
     private statsDiv = document.createElement("div")
     private statsText = document.createElement("pre")
     private statsCanvas = document.createElement("canvas")
+    private statsAdaptive = document.createElement("div")
     private incomingBandwidthHistory: number[] = []
     private outgoingBandwidthHistory: number[] = []
     private stream: Stream | null = null
@@ -88,6 +89,9 @@ class ViewerApp implements Component {
     private debugLogModal = new DebugLogModal()
 
     private settings: Settings
+
+    private adaptiveIntervalId: number | null = null
+    private adaptiveLastUpdateMs = 0
 
     private inputConfig: StreamInputConfig = defaultStreamInputConfig()
     private previousMouseMode: MouseMode
@@ -181,8 +185,10 @@ class ViewerApp implements Component {
         this.statsDiv.classList.add("video-stats")
         this.statsText.classList.add("video-stats-text")
         this.statsCanvas.classList.add("video-stats-graph")
+        this.statsAdaptive.classList.add("video-stats-adaptive")
         this.statsDiv.appendChild(this.statsText)
         this.statsDiv.appendChild(this.statsCanvas)
+        this.statsDiv.appendChild(this.statsAdaptive)
 
         setInterval(() => {
             // Update stats display every 100ms
@@ -198,6 +204,21 @@ class ViewerApp implements Component {
                     this.pushBandwidthSample(current.incomingKbps, current.outgoingKbps)
                     this.renderBandwidthGraph()
                 }
+
+                const targetKbps = current.clientTargetBitrateKbps ?? this.settings.serverReencodeBitrateKbps ?? this.settings.bitrate
+                const observedKbps = current.outgoingKbps ?? current.incomingKbps
+                const adaptiveState = current.adaptiveEnabled === true ? "on" : current.adaptiveEnabled === false ? "off" : "unknown"
+                const minKbps = current.adaptiveMinKbps
+                const maxKbps = current.adaptiveMaxKbps
+                const delta = (observedKbps != null && targetKbps != null)
+                    ? `${observedKbps >= targetKbps ? "+" : ""}${Math.round(observedKbps - targetKbps)} kbps`
+                    : "n/a"
+
+                const adaptiveRange = (minKbps != null && maxKbps != null)
+                    ? `${minKbps}–${maxKbps} kbps`
+                    : "n/a"
+
+                this.statsAdaptive.innerText = `Adaptive: ${adaptiveState} (${adaptiveRange})\nTarget: ${targetKbps ?? "n/a"} kbps | Observed: ${observedKbps ?? "n/a"} kbps | Δ ${delta}`
             } else {
                 this.statsDiv.hidden = true
             }
@@ -215,6 +236,7 @@ class ViewerApp implements Component {
         this.startStream(hostId, appId, settings, [browserWidth, browserHeight])
 
         this.settings = settings
+        this.startAdaptiveBitrate()
 
         // Configure input
         this.addListeners(document)
@@ -686,6 +708,54 @@ class ViewerApp implements Component {
     }
     getStream(): Stream | null {
         return this.stream
+    }
+
+    private startAdaptiveBitrate() {
+        if (!this.settings.adaptiveBitrateEnabled) {
+            return
+        }
+
+        this.stream?.getStats().setEnabled(true)
+
+        if (this.adaptiveIntervalId != null) {
+            return
+        }
+
+        this.adaptiveIntervalId = setInterval(() => {
+            const stream = this.stream
+            if (!stream) {
+                return
+            }
+
+            const stats = stream.getStats().getCurrentStats()
+            const observedKbps = stats.outgoingKbps ?? stats.incomingKbps
+            if (!observedKbps || observedKbps <= 0) {
+                return
+            }
+
+            const minKbps = Math.max(500, this.settings.adaptiveBitrateMinKbps)
+            const maxKbps = Math.max(minKbps, this.settings.adaptiveBitrateMaxKbps)
+            const currentTarget = this.settings.serverReencodeBitrateKbps
+            let nextTarget = currentTarget
+
+            if (observedKbps < currentTarget * 0.8) {
+                nextTarget = Math.max(minKbps, Math.floor(observedKbps * 0.9))
+            } else if (observedKbps > currentTarget * 1.1 && currentTarget < maxKbps) {
+                nextTarget = Math.min(maxKbps, Math.floor(currentTarget * 1.05 + 250))
+            }
+
+            if (Math.abs(nextTarget - currentTarget) < 250) {
+                return
+            }
+
+            const now = Date.now()
+            if (now - this.adaptiveLastUpdateMs < 3000) {
+                return
+            }
+
+            this.adaptiveLastUpdateMs = now
+            this.updateBitrateKbps(nextTarget)
+        }, 2000)
     }
 
     async updateBitrateKbps(bitrateKbps: number) {
