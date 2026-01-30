@@ -1,10 +1,7 @@
 import { StreamerStatsUpdate, TransportChannelId } from "../api_bindings.js"
 import { BIG_BUFFER, ByteBuffer } from "./buffer.js"
 import { Logger } from "./log.js"
-import { Pipe } from "./pipeline/index.js"
 import { DataTransportChannel, Transport } from "./transport/index.js"
-
-export type StatValue = string | number
 
 export type StreamStatsData = {
     videoCodec: string | null
@@ -14,6 +11,9 @@ export type StreamStatsData = {
     videoPipeline: string | null
     audioPipeline: string | null
     hdrEnabled: boolean | null
+    transcodeEnabled: boolean | null
+    transcodeCodec: string | null
+    transcodeBitrateKbps: number | null
     streamerRttMs: number | null
     streamerRttVarianceMs: number | null
     minHostProcessingLatencyMs: number | null
@@ -23,9 +23,9 @@ export type StreamStatsData = {
     maxStreamerProcessingTimeMs: number | null
     avgStreamerProcessingTimeMs: number | null
     browserRtt: number | null
-    transport: Record<string, StatValue>
-    video: Record<string, StatValue>
-    audio: Record<string, StatValue>
+    incomingKbps: number | null
+    outgoingKbps: number | null
+    transport: Record<string, string>
 }
 
 function num(value: number | null | undefined, suffix?: string): string | null {
@@ -40,37 +40,18 @@ export function streamStatsToText(statsData: StreamStatsData): string {
     let text = `stats:
 video information: ${statsData.videoCodec}, ${statsData.videoWidth}x${statsData.videoHeight}, ${statsData.videoFps} fps
 HDR: ${statsData.hdrEnabled === true ? "Enabled" : statsData.hdrEnabled === false ? "Disabled" : "Unknown"}
+server transcode: ${statsData.transcodeEnabled === true ? "On" : statsData.transcodeEnabled === false ? "Off" : "Unknown"} ${statsData.transcodeCodec ? `(${statsData.transcodeCodec})` : ""} ${statsData.transcodeBitrateKbps ? `${statsData.transcodeBitrateKbps} kbps` : ""}
 video pipeline: ${statsData.videoPipeline}
 audio pipeline: ${statsData.audioPipeline}
 streamer round trip time: ${num(statsData.streamerRttMs, "ms")} (variance: ${num(statsData.streamerRttVarianceMs, "ms")})
 host processing latency min/max/avg: ${num(statsData.minHostProcessingLatencyMs, "ms")} / ${num(statsData.maxHostProcessingLatencyMs, "ms")} / ${num(statsData.avgHostProcessingLatencyMs, "ms")}
 streamer processing latency min/max/avg: ${num(statsData.minStreamerProcessingTimeMs, "ms")} / ${num(statsData.maxStreamerProcessingTimeMs, "ms")} / ${num(statsData.avgStreamerProcessingTimeMs, "ms")}
+moonlight → streamer: ${num(statsData.incomingKbps, " kbps")}
+streamer → browser: ${num(statsData.outgoingKbps, " kbps")}
 streamer to browser rtt (ws only): ${num(statsData.browserRtt, "ms")}
 `
     for (const key in statsData.transport) {
         const value = statsData.transport[key]
-        let valuePretty = value
-
-        if (typeof value == "number" && key.endsWith("Ms")) {
-            valuePretty = `${num(value, "ms")}`
-        }
-
-        text += `${key}: ${valuePretty}\n`
-    }
-
-    for (const key in statsData.video) {
-        const value = statsData.video[key]
-        let valuePretty = value
-
-        if (typeof value == "number" && key.endsWith("Ms")) {
-            valuePretty = `${num(value, "ms")}`
-        }
-
-        text += `${key}: ${valuePretty}\n`
-    }
-
-    for (const key in statsData.audio) {
-        const value = statsData.audio[key]
         let valuePretty = value
 
         if (typeof value == "number" && key.endsWith("Ms")) {
@@ -92,8 +73,6 @@ export class StreamStats {
     private statsChannel: DataTransportChannel | null = null
     private updateIntervalId: number | null = null
 
-    private videoPipe: Pipe | null = null
-    private audioPipe: Pipe | null = null
     private statsData: StreamStatsData = {
         videoCodec: null,
         videoWidth: null,
@@ -102,6 +81,9 @@ export class StreamStats {
         videoPipeline: null,
         audioPipeline: null,
         hdrEnabled: null,
+        transcodeEnabled: null,
+        transcodeCodec: null,
+        transcodeBitrateKbps: null,
         streamerRttMs: null,
         streamerRttVarianceMs: null,
         minHostProcessingLatencyMs: null,
@@ -111,9 +93,9 @@ export class StreamStats {
         maxStreamerProcessingTimeMs: null,
         avgStreamerProcessingTimeMs: null,
         browserRtt: null,
-        transport: {},
-        video: {},
-        audio: {}
+        incomingKbps: null,
+        outgoingKbps: null,
+        transport: {}
     }
 
     constructor(logger?: Logger) {
@@ -126,6 +108,12 @@ export class StreamStats {
         this.transport = transport
 
         this.checkEnabled()
+    }
+
+    setTranscodeInfo(enabled: boolean, codec: string | null, bitrateKbps: number | null) {
+        this.statsData.transcodeEnabled = enabled
+        this.statsData.transcodeCodec = codec
+        this.statsData.transcodeBitrateKbps = bitrateKbps
     }
     private checkEnabled() {
         if (this.enabled) {
@@ -199,17 +187,13 @@ export class StreamStats {
             this.statsData.avgStreamerProcessingTimeMs = msg.Video.avg_streamer_processing_time_ms
         } else if ("BrowserRtt" in msg) {
             this.statsData.browserRtt = msg.BrowserRtt.rtt_ms
+        } else if ("Bandwidth" in msg) {
+            this.statsData.incomingKbps = msg.Bandwidth.incoming_kbps
+            this.statsData.outgoingKbps = msg.Bandwidth.outgoing_kbps
         }
     }
 
     private async updateLocalStats() {
-        Promise.all([
-            this.updateTransportStats(),
-            this.updateVideoStats(),
-            this.updateAudioStats(),
-        ])
-    }
-    private async updateTransportStats() {
         if (!this.transport) {
             console.debug("Cannot query stats without transport")
             return
@@ -222,24 +206,6 @@ export class StreamStats {
             this.statsData.transport[key] = value
         }
     }
-    private async updateVideoStats() {
-        const stats = {}
-
-        if (this.videoPipe && this.videoPipe.reportStats) {
-            this.videoPipe.reportStats(stats)
-        }
-
-        this.statsData.video = stats
-    }
-    private async updateAudioStats() {
-        const stats = {}
-
-        if (this.audioPipe && this.audioPipe.reportStats) {
-            this.audioPipe.reportStats(stats)
-        }
-
-        this.statsData.audio = stats
-    }
 
     setVideoInfo(codec: string, width: number, height: number, fps: number) {
         this.statsData.videoCodec = codec
@@ -247,13 +213,11 @@ export class StreamStats {
         this.statsData.videoHeight = height
         this.statsData.videoFps = fps
     }
-    setVideoPipeline(name: string, pipe: Pipe | null) {
+    setVideoPipelineName(name: string) {
         this.statsData.videoPipeline = name
-        this.videoPipe = pipe
     }
-    setAudioPipeline(name: string, pipe: Pipe | null) {
+    setAudioPipelineName(name: string) {
         this.statsData.audioPipeline = name
-        this.audioPipe = pipe
     }
     setHdrEnabled(enabled: boolean) {
         this.statsData.hdrEnabled = enabled
