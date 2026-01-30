@@ -31,7 +31,12 @@ jobs:
     - uses: actions/setup-node@v6
       with:
         node-version: 24
-    - run: sudo apt-get install clang -y
+    - run: |
+        sudo apt-get update
+        sudo apt-get install -y \
+          clang pkg-config \
+          libavutil-dev libavcodec-dev libavformat-dev libswscale-dev \
+          libavdevice-dev libavfilter-dev libswresample-dev
 
     - name: Run tests
       run: cargo test --workspace --locked --exclude moonlight-client-simple
@@ -97,8 +102,11 @@ jobs:
         with:
           context: ./docker/
           file: ./docker/Dockerfile.action
-          tags: mrcreativ3001/moonlight-web-stream:${{ github.ref_name }}-${{ matrix.platform }}
+          tags: esierp/moonlight-web-stream-reencode-poc:${{ github.ref_name }}-${{ matrix.platform }}
           push: true
+          build-args: |
+            BUILD_COMMIT=${{ github.sha }}
+            BUILD_TIME=${{ github.run_started_at }}
 
   docker-manifest:
     name: Docker create multi-arch manifest for versioned images
@@ -116,11 +124,11 @@ jobs:
 
       - name: Create and push manifest
         run: |
-          docker manifest create mrcreativ3001/moonlight-web-stream:${{ github.ref_name }} \
-            --amend mrcreativ3001/moonlight-web-stream:${{ github.ref_name }}-amd64 \
-            --amend mrcreativ3001/moonlight-web-stream:${{ github.ref_name }}-arm64
+          docker manifest create esierp/moonlight-web-stream-reencode-poc:${{ github.ref_name }} \
+            --amend esierp/moonlight-web-stream-reencode-poc:${{ github.ref_name }}-amd64 \
+            --amend esierp/moonlight-web-stream-reencode-poc:${{ github.ref_name }}-arm64
 
-          docker manifest push mrcreativ3001/moonlight-web-stream:${{ github.ref_name }}
+          docker manifest push esierp/moonlight-web-stream-reencode-poc:${{ github.ref_name }}
 
   docker-manifest-latest:
     name: Docker point latest image to versioned image
@@ -138,8 +146,8 @@ jobs:
 
       - name: Create and push manifest
         run: |
-          docker manifest create mrcreativ3001/moonlight-web-stream:latest \
-            --amend mrcreativ3001/moonlight-web-stream:${{ github.ref_name }}-amd64 \
-            --amend mrcreativ3001/moonlight-web-stream:${{ github.ref_name }}-arm64
+          docker manifest create esierp/moonlight-web-stream-reencode-poc:latest \
+            --amend esierp/moonlight-web-stream-reencode-poc:${{ github.ref_name }}-amd64 \
+            --amend esierp/moonlight-web-stream-reencode-poc:${{ github.ref_name }}-arm64
 
-          docker manifest push mrcreativ3001/moonlight-web-stream:latest
+          docker manifest push esierp/moonlight-web-stream-reencode-poc:latest

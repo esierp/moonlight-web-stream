@@ -79,8 +79,6 @@ async function onMessage(message: ToWorkerMessage) {
         }
         postMessage(response)
     } else if ("createPipeline" in message) {
-        logger.debug(`Trying to build pipeline in worker, Pipes: ${JSON.stringify(message.createPipeline.pipes)}`, { type: "fatal" })
-
         const pipeline = message.createPipeline
 
         const newPipeline = buildPipeline(WorkerMessageSender, pipeline, logger)
@@ -89,7 +87,6 @@ async function onMessage(message: ToWorkerMessage) {
         } else {
             logger.debug("Failed to build worker pipeline!", { type: "fatal" })
         }
-        logger.debug(`Successfully build pipeline in worker: ${currentPipeline?.implementationName}`)
 
         let base = newPipeline
         let newBase = newPipeline?.getBase()
@@ -109,18 +106,14 @@ async function onMessage(message: ToWorkerMessage) {
         if ("canvas" in message.input) {
             // Filter out the canvas, the last pipe needs that
             if (canvasPipe) {
-                logger.debug("Received OffscreenCanvas in worker")
                 canvasPipe.setContext(message.input.canvas)
-            } else {
-                pipelineErrored = true
-                logger.debug("Failed to set OffscreenCanvas in the worker because the worker doesn't contain a compatible pipe at the end of the pipeline!", { type: "fatal" })
             }
         } else {
             if (currentPipeline) {
                 currentPipeline.onWorkerMessage(message.input)
             } else {
                 pipelineErrored = true
-                logger.debug(`Failed to submit worker pipe input because the worker wasn't assigned a pipeline! Message: ${JSON.stringify(message)}`)
+                logger.debug("Failed to submit worker pipe input because the worker wasn't assigned a pipeline!")
             }
         }
 

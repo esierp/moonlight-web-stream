@@ -5,11 +5,23 @@ ENV MOONLIGHT_WEB_PATH=/moonlight-web
 # Create / Go to app directory
 WORKDIR ${MOONLIGHT_WEB_PATH}
 
+# Install runtime dependencies
+RUN apt-get update && apt-get install -y \
+  libavutil58 libavcodec60 libavformat60 libswscale7 \
+  libavdevice60 libavfilter9 libswresample4 \
+  && rm -rf /var/lib/apt/lists/*
+
 # Copy prebuilt artifacts
 COPY moonlight-web/ ${MOONLIGHT_WEB_PATH}/
 
 # Mark executables as executable
 RUN chmod +x ${MOONLIGHT_WEB_PATH}/streamer ${MOONLIGHT_WEB_PATH}/web-server
+
+# Write build info for footer
+ARG BUILD_COMMIT=dev
+ARG BUILD_TIME=dev
+RUN printf "export const BUILD_COMMIT = \"%s\"\nexport const BUILD_TIME = \"%s\"\n" "$BUILD_COMMIT" "$BUILD_TIME" \
+  > ${MOONLIGHT_WEB_PATH}/static/build_info.js
 
 # Create a volume with the config.json and data.json
 VOLUME ${MOONLIGHT_WEB_PATH}/server

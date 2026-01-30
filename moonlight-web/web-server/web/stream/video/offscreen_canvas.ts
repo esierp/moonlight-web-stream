@@ -4,7 +4,7 @@ import { WorkerMessage } from "../pipeline/worker_types.js";
 import { BaseCanvasVideoRenderer } from "./canvas.js";
 import { VideoRendererSetup } from "./index.js";
 
-export class OffscreenCanvasRenderer extends BaseCanvasVideoRenderer implements WorkerReceiver {
+export class OffscreenCanvasVideoRenderer extends BaseCanvasVideoRenderer implements WorkerReceiver {
 
     static async getInfo(): Promise<PipeInfo> {
         return {
@@ -14,18 +14,11 @@ export class OffscreenCanvasRenderer extends BaseCanvasVideoRenderer implements 
 
     static readonly type = "workeroutput"
 
-    private mainCanvas = BaseCanvasVideoRenderer.createMainCanvas()
-
     transferred: boolean = false
     offscreen: OffscreenCanvas | null = null
 
     constructor() {
-        super("offscreen_canvas", {
-            // This won't make any difference because the rendering is done offscreen
-            // drawOnSubmit: true
-        })
-
-        this.setCanvas(this.mainCanvas, true)
+        super("offscreen_canvas")
     }
 
     async setup(setup: VideoRendererSetup): Promise<void> {
@@ -36,7 +29,7 @@ export class OffscreenCanvasRenderer extends BaseCanvasVideoRenderer implements 
         super.mount(parent)
 
         if (!this.offscreen && !this.transferred) {
-            this.offscreen = this.mainCanvas.transferControlToOffscreen()
+            this.offscreen = this.canvas.transferControlToOffscreen()
 
             // The transfer happens in the WorkerPipe
         }

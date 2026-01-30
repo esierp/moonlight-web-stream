@@ -1,5 +1,7 @@
+import { showErrorPopup } from "../../component/error.js";
 import { Logger } from "../log.js";
-import { OffscreenCanvasRenderer } from "../video/offscreen_canvas.js";
+import { VideoRendererSetup } from "../video/index.js";
+import { OffscreenCanvasVideoRenderer } from "../video/offscreen_canvas.js";
 import { globalObject, Pipe, PipeInfo, Pipeline, pipelineToString, PipeStatic } from "./index.js";
 import { addPipePassthrough } from "./pipes.js";
 import { ToMainMessage, ToWorkerMessage, WorkerMessage } from "./worker_types.js";
@@ -75,10 +77,6 @@ export class WorkerPipe implements WorkerReceiver {
         }
         this.worker.postMessage(message)
 
-        this.worker.onerror = (event) => {
-            this.logger?.debug(`Worker errored because of: ${event.error}`)
-        }
-
         addPipePassthrough(this)
     }
 
@@ -105,8 +103,8 @@ export class WorkerPipe implements WorkerReceiver {
         }
 
         // The OffscreenCanvas needs to transfer it's canvas into the worker, do that here
-        if (this.base instanceof OffscreenCanvasRenderer && this.base.offscreen) {
-            this.logger?.debug("Transferred OffscreenCanvas into worker")
+        if (this.base instanceof OffscreenCanvasVideoRenderer && this.base.offscreen) {
+            this.logger?.debug("TESTING: TRANSFERRED")
 
             const canvas = this.base.offscreen
             this.onWorkerMessage({ canvas }, [canvas])

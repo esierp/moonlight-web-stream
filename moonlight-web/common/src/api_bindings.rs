@@ -357,6 +357,25 @@ pub enum StreamSignalingMessage {
     AddIceCandidate(RtcIceCandidate),
 }
 
+#[derive(Serialize, Deserialize, Debug, TS, Clone)]
+#[ts(export, export_to = EXPORT_PATH)]
+pub enum ReencodeCodec {
+    #[serde(rename = "h264")]
+    H264,
+    #[serde(rename = "vp8")]
+    VP8,
+}
+
+#[derive(Serialize, Deserialize, Debug, TS, Clone)]
+#[ts(export, export_to = EXPORT_PATH)]
+pub struct ReencodeSettings {
+    pub enabled: bool,
+    pub codec: ReencodeCodec,
+    pub bitrate_kbps: u32,
+    pub preset: Option<String>,
+    pub threads: Option<u16>,
+}
+
 #[derive(Serialize, Deserialize, Debug, TS)]
 #[ts(export, export_to = EXPORT_PATH)]
 pub enum TransportType {
@@ -386,6 +405,10 @@ pub enum StreamClientMessage {
         video_colorspace: StreamColorspace,
         video_color_range_full: bool,
         hdr: bool,
+        reencode: Option<ReencodeSettings>,
+    },
+    UpdateReencode {
+        reencode: Option<ReencodeSettings>,
     },
 }
 
@@ -459,6 +482,11 @@ pub enum StreamServerMessage {
         audio_samples_per_frame: u32,
         audio_mapping: [u8; 8],
     },
+    TranscodeStatus {
+        enabled: bool,
+        codec: Option<ReencodeCodec>,
+        bitrate_kbps: Option<u32>,
+    },
     ConnectionTerminated {
         error_code: i32,
     },
@@ -521,6 +549,12 @@ pub enum StreamerStatsUpdate {
         /// The browser to the streamer
         /// Used with ws protocol to know backlog
         rtt_ms: f64,
+    },
+    Bandwidth {
+        /// Incoming bandwidth from Moonlight host to streamer
+        incoming_kbps: f64,
+        /// Outgoing bandwidth from streamer to browser
+        outgoing_kbps: f64,
     },
 }
 

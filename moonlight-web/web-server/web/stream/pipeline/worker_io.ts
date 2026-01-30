@@ -1,6 +1,5 @@
 import { Logger } from "../log.js";
-import { BaseCanvasVideoRenderer } from "../video/canvas.js";
-import { CanvasRenderer, FrameVideoRenderer, TrackVideoRenderer, UseCanvasResult, VideoRendererSetup } from "../video/index.js";
+import { FrameVideoRenderer, TrackVideoRenderer, VideoRendererSetup } from "../video/index.js";
 import { globalObject, Pipe, PipeInfo } from "./index.js";
 import { addPipePassthrough, DataPipe } from "./pipes.js";
 import { WorkerPipe, WorkerReceiver } from "./worker_pipe.js";
@@ -117,7 +116,7 @@ export class WorkerVideoTrackSendPipe extends WorkerSenderPipe {
 }
 
 
-export class WorkerOffscreenCanvasSendPipe extends WorkerSenderPipe implements CanvasRenderer {
+export class WorkerOffscreenCanvasSendPipe extends WorkerSenderPipe implements FrameVideoRenderer {
 
     static async getInfo(): Promise<PipeInfo> {
         return {
@@ -125,41 +124,44 @@ export class WorkerOffscreenCanvasSendPipe extends WorkerSenderPipe implements C
         }
     }
 
-    private renderer: BaseCanvasVideoRenderer
-
     static readonly baseType = "workerinput"
-    static readonly type = "canvas"
+    static readonly type = "videoframe"
 
     implementationName: string = "offscreen_canvas_send"
 
+    private canvas: OffscreenCanvas | null = null
+    private context: OffscreenCanvasRenderingContext2D | null = null
+
     constructor(base: WorkerPipe, logger?: Logger) {
         super(base, logger)
-
-        this.renderer = new BaseCanvasVideoRenderer("offscreen_canvas", {
-            drawOnSubmit: true
-        })
 
         addPipePassthrough(this)
     }
 
     setContext(canvas: OffscreenCanvas) {
         // This is called from the WorkerPipe
-        this.renderer.setCanvas(canvas)
+        this.canvas = canvas
+        this.context = canvas.getContext("2d")
+
+        if (!this.context) {
+            this.logger?.debug("Failed to get OffscreenCanvasContext2D", { type: "fatal" })
+        }
     }
 
-    useCanvasContext(type: "webgl"): UseCanvasResult<WebGLRenderingContext>;
-    useCanvasContext(type: "webgl2"): UseCanvasResult<WebGL2RenderingContext>;
-    useCanvasContext(type: "2d"): UseCanvasResult<(OffscreenCanvasRenderingContext2D | CanvasRenderingContext2D)>;
-    useCanvasContext(type: "webgl" | "webgl2" | "2d"): UseCanvasResult<WebGLRenderingContext> | UseCanvasResult<WebGL2RenderingContext> | UseCanvasResult<(OffscreenCanvasRenderingContext2D | CanvasRenderingContext2D)> {
-        // @ts-ignore
-        return this.renderer.useCanvasContext(type)
-    }
+    override submitFrame(frame: VideoFrame): void {
+        if (this.canvas && this.context) {
+            this.canvas.width = frame.displayWidth
+            this.canvas.height = frame.displayHeight
 
-    setCanvasSize(width: number, height: number): void {
-        this.renderer.setCanvasSize(width, height)
-    }
+            this.context.clearRect(0, 0, frame.displayWidth, frame.displayHeight)
+            this.context.drawImage(frame, 0, 0, frame.displayWidth, frame.displayHeight)
 
-    commitFrame(): void {
-        this.renderer.commitFrame()
+            if ("commit" in this.canvas && typeof this.canvas.commit == "function") {
+                // Signal finished, not supported in all browsers
+                this.canvas.commit()
+            }
+        }
+
+        frame.close()
     }
 }
