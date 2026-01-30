@@ -85,6 +85,7 @@ export class StreamSettingsComponent implements Component {
     private sidebarEdge: SelectComponent
 
     private streamHeader: HTMLHeadingElement = document.createElement("h2")
+    private reencodeDetails: HTMLDetailsElement = document.createElement("details")
     private bitrate: InputComponent
     private packetSize: InputComponent
     private fps: InputComponent
@@ -155,6 +156,12 @@ export class StreamSettingsComponent implements Component {
         this.streamHeader.innerText = "Video"
         this.divElement.appendChild(this.streamHeader)
 
+        this.reencodeDetails.classList.add("settings-submenu")
+        const reencodeSummary = document.createElement("summary")
+        reencodeSummary.innerText = "Re-Encode"
+        this.reencodeDetails.appendChild(reencodeSummary)
+        this.divElement.appendChild(this.reencodeDetails)
+
         // Bitrate
         this.bitrate = new InputComponent("bitrate", "number", "Bitrate", {
             defaultValue: defaultSettings_.bitrate.toString(),
@@ -192,7 +199,7 @@ export class StreamSettingsComponent implements Component {
             checked: settings?.serverReencodeEnabled ?? defaultSettings_.serverReencodeEnabled,
         })
         this.serverReencodeEnabled.addChangeListener(this.onSettingsChange.bind(this))
-        this.serverReencodeEnabled.mount(this.divElement)
+        this.serverReencodeEnabled.mount(this.reencodeDetails)
 
         this.serverReencodeCodec = new SelectComponent("serverReencodeCodec", [
             { value: "h264", name: "H.264" },
@@ -202,7 +209,7 @@ export class StreamSettingsComponent implements Component {
             preSelectedOption: settings?.serverReencodeCodec ?? defaultSettings_.serverReencodeCodec,
         })
         this.serverReencodeCodec.addChangeListener(this.onSettingsChange.bind(this))
-        this.serverReencodeCodec.mount(this.divElement)
+        this.serverReencodeCodec.mount(this.reencodeDetails)
 
         this.serverReencodeBitrateKbps = new InputComponent("serverReencodeBitrateKbps", "number", "Re-Encode Bitrate (kbps)", {
             defaultValue: defaultSettings_.serverReencodeBitrateKbps.toString(),
@@ -214,7 +221,7 @@ export class StreamSettingsComponent implements Component {
             }
         })
         this.serverReencodeBitrateKbps.addChangeListener(this.onSettingsChange.bind(this))
-        this.serverReencodeBitrateKbps.mount(this.divElement)
+        this.serverReencodeBitrateKbps.mount(this.reencodeDetails)
 
         this.serverReencodePreset = new SelectComponent("serverReencodePreset", [
             { value: "default", name: "Default" },
@@ -232,7 +239,7 @@ export class StreamSettingsComponent implements Component {
             preSelectedOption: settings?.serverReencodePreset ?? defaultSettings_.serverReencodePreset,
         })
         this.serverReencodePreset.addChangeListener(this.onSettingsChange.bind(this))
-        this.serverReencodePreset.mount(this.divElement)
+        this.serverReencodePreset.mount(this.reencodeDetails)
 
         this.serverReencodeThreads = new InputComponent("serverReencodeThreads", "number", "Re-Encode Threads (0 = auto)", {
             defaultValue: defaultSettings_.serverReencodeThreads.toString(),
@@ -244,13 +251,13 @@ export class StreamSettingsComponent implements Component {
             }
         })
         this.serverReencodeThreads.addChangeListener(this.onSettingsChange.bind(this))
-        this.serverReencodeThreads.mount(this.divElement)
+        this.serverReencodeThreads.mount(this.reencodeDetails)
 
         this.adaptiveBitrateEnabled = new InputComponent("adaptiveBitrateEnabled", "checkbox", "Adaptive Re-Encode Bitrate", {
             checked: settings?.adaptiveBitrateEnabled ?? defaultSettings_.adaptiveBitrateEnabled,
         })
         this.adaptiveBitrateEnabled.addChangeListener(this.onSettingsChange.bind(this))
-        this.adaptiveBitrateEnabled.mount(this.divElement)
+        this.adaptiveBitrateEnabled.mount(this.reencodeDetails)
 
         this.adaptiveBitrateMinKbps = new InputComponent("adaptiveBitrateMinKbps", "number", "Adaptive Bitrate Min (kbps)", {
             defaultValue: defaultSettings_.adaptiveBitrateMinKbps.toString(),
@@ -262,7 +269,7 @@ export class StreamSettingsComponent implements Component {
             }
         })
         this.adaptiveBitrateMinKbps.addChangeListener(this.onSettingsChange.bind(this))
-        this.adaptiveBitrateMinKbps.mount(this.divElement)
+        this.adaptiveBitrateMinKbps.mount(this.reencodeDetails)
 
         this.adaptiveBitrateMaxKbps = new InputComponent("adaptiveBitrateMaxKbps", "number", "Adaptive Bitrate Max (kbps)", {
             defaultValue: defaultSettings_.adaptiveBitrateMaxKbps.toString(),
@@ -274,7 +281,7 @@ export class StreamSettingsComponent implements Component {
             }
         })
         this.adaptiveBitrateMaxKbps.addChangeListener(this.onSettingsChange.bind(this))
-        this.adaptiveBitrateMaxKbps.mount(this.divElement)
+        this.adaptiveBitrateMaxKbps.mount(this.reencodeDetails)
 
         // Video Size
         this.videoSize = new SelectComponent("videoSize",
