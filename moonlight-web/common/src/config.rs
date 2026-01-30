@@ -23,6 +23,8 @@ pub struct Config {
     pub web_server: WebServerConfig,
     #[serde(default)]
     pub moonlight: MoonlightConfig,
+    #[serde(default)]
+    pub video: VideoConfig,
     #[serde(default = "default_streamer_path")]
     pub streamer_path: String,
     #[serde(default)]
@@ -39,6 +41,7 @@ impl Default for Config {
             web_server: Default::default(),
             moonlight: Default::default(),
             webrtc: Default::default(),
+            video: Default::default(),
             log: Default::default(),
             default_settings: Default::default(),
         }
@@ -222,6 +225,68 @@ fn default_network_types() -> Vec<WebRtcNetworkType> {
 }
 fn default_include_loopback_candidates() -> bool {
     true
+}
+
+// -- Video Config
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct VideoConfig {
+    #[serde(default = "default_server_decode")]
+    pub server_decode: bool,
+    #[serde(default)]
+    pub ffmpeg: FfmpegConfig,
+}
+
+impl Default for VideoConfig {
+    fn default() -> Self {
+        Self {
+            server_decode: default_server_decode(),
+            ffmpeg: Default::default(),
+        }
+    }
+}
+
+fn default_server_decode() -> bool {
+    false
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct FfmpegConfig {
+    #[serde(default = "default_ffmpeg_encoder")]
+    pub encoder: String,
+    #[serde(default = "default_ffmpeg_preset")]
+    pub preset: String,
+    #[serde(default = "default_ffmpeg_bitrate_kbps")]
+    pub bitrate_kbps: u32,
+    #[serde(default = "default_ffmpeg_fps")]
+    pub fps: u32,
+}
+
+impl Default for FfmpegConfig {
+    fn default() -> Self {
+        Self {
+            encoder: default_ffmpeg_encoder(),
+            preset: default_ffmpeg_preset(),
+            bitrate_kbps: default_ffmpeg_bitrate_kbps(),
+            fps: default_ffmpeg_fps(),
+        }
+    }
+}
+
+fn default_ffmpeg_encoder() -> String {
+    "libx264".to_string()
+}
+
+fn default_ffmpeg_preset() -> String {
+    "veryfast".to_string()
+}
+
+fn default_ffmpeg_bitrate_kbps() -> u32 {
+    15000
+}
+
+fn default_ffmpeg_fps() -> u32 {
+    60
 }
 
 // -- Web Server Config
