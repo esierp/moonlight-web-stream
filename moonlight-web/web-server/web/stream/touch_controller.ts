@@ -2,7 +2,7 @@ import { StreamControllerButton } from "../api_bindings.js"
 import { emptyGamepadState, GamepadState, SUPPORTED_BUTTONS } from "./gamepad.js"
 import { StreamInput } from "./input.js"
 
-const VIRTUAL_CONTROLLER_ID = 15
+const VIRTUAL_CONTROLLER_ID = 0
 
 const BUTTON_MAP: Record<string, number> = {
     a: StreamControllerButton.BUTTON_A,
