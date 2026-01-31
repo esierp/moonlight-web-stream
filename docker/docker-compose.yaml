@@ -2,7 +2,7 @@ version: "3.9"
 
 services:
   moonlight-web:
-    image: mrcreativ3001/moonlight-web-stream:latest
+    image: moonlight-web:feature-touch-controller
     container_name: moonlight-web
     restart: unless-stopped
     ports:
