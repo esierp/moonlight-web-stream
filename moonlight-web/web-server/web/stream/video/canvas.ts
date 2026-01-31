@@ -49,12 +49,12 @@ export abstract class BaseCanvasVideoRenderer implements VideoRenderer, CanvasRe
         return null
     }
 
-    useCanvasContext(type: "2d" | "bitmaprenderer" | "webgl") {
-        const context = this.canvas.getContext(type as any)
+    useCanvasContext(type: "2d") {
+        const context = this.canvas.getContext(type)
         if (!context) {
             return { context: null, error: `Canvas context "${type}" not supported` }
         }
-        return { context: context as any }
+        return { context }
     }
 
     setCanvasSize(width: number, height: number) {

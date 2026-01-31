@@ -71,8 +71,8 @@ export function getStreamRectCorrected(boundingRect: DOMRect, videoSize: [number
 export interface CanvasRenderer extends Pipe {
     readonly implementationName: string
 
-    useCanvasContext(type: "2d" | "bitmaprenderer" | "webgl"): {
-        context: CanvasRenderingContext2D | ImageBitmapRenderingContext | WebGLRenderingContext | null
+    useCanvasContext(type: "2d"): {
+        context: CanvasRenderingContext2D | null
         error?: string
     }
     setCanvasSize(width: number, height: number): void
