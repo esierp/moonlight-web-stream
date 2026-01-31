@@ -81,6 +81,10 @@ export class Stream implements Component {
     private logger: Logger = new Logger()
     private restartInProgress = false
 
+    logDebug(message: string) {
+        this.logger.debug(message)
+    }
+
     private api: Api
 
     private hostId: number
@@ -132,6 +136,7 @@ export class Stream implements Component {
             controllerConfig: this.settings.controllerConfig
         })
         this.input = new StreamInput(streamInputConfig)
+        this.input.setDebugLogger((message) => this.logger.debug(message))
 
         // Stream Stats
         this.stats = new StreamStats()

@@ -35,6 +35,7 @@ type StickState = {
 export class TouchController {
     private root = document.createElement("div")
     private input: StreamInput
+    private logDebug: ((message: string) => void) | null = null
     private enabled = false
     private state: GamepadState = emptyGamepadState()
     private lastSent: GamepadState = emptyGamepadState()
@@ -44,8 +45,9 @@ export class TouchController {
 
     private buttons: Map<HTMLElement, { name: string, pressed: boolean }> = new Map()
 
-    constructor(input: StreamInput) {
+    constructor(input: StreamInput, logDebug?: (message: string) => void) {
         this.input = input
+        this.logDebug = logDebug ?? null
         this.root.classList.add("touch-controller")
         this.root.style.display = "none"
 
@@ -64,9 +66,11 @@ export class TouchController {
         this.root.style.display = visible ? "flex" : "none"
 
         if (visible) {
+            this.logDebug?.("[TouchController] Enabled")
             this.input.sendControllerAdd(VIRTUAL_CONTROLLER_ID, SUPPORTED_BUTTONS, 0)
             this.sendState(true)
         } else {
+            this.logDebug?.("[TouchController] Disabled")
             this.resetState()
             this.input.sendControllerRemove(VIRTUAL_CONTROLLER_ID)
         }
@@ -95,6 +99,7 @@ export class TouchController {
             return
         }
         this.lastSent = { ...this.state }
+        this.logDebug?.(`[TouchController] Send state flags=${this.lastSent.buttonFlags} LT=${this.lastSent.leftTrigger.toFixed(2)} RT=${this.lastSent.rightTrigger.toFixed(2)} LX=${this.lastSent.leftStickX.toFixed(2)} LY=${this.lastSent.leftStickY.toFixed(2)} RX=${this.lastSent.rightStickX.toFixed(2)} RY=${this.lastSent.rightStickY.toFixed(2)}`)
         this.input.sendController(VIRTUAL_CONTROLLER_ID, this.lastSent)
     }
 

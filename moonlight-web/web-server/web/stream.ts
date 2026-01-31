@@ -306,7 +306,7 @@ class ViewerApp implements Component {
 
         this.stream.mount(this.div)
 
-        this.touchController = new TouchController(this.stream.getInput())
+        this.touchController = new TouchController(this.stream.getInput(), this.stream.logDebug.bind(this.stream))
         this.touchController.mount(this.div)
         this.updateTouchControllerVisibility()
     }

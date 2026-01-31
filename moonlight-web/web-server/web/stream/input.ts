@@ -82,6 +82,9 @@ export class StreamInput {
     private pendingControllerAdds: Array<{ id: number, supportedButtons: number, capabilities: number }> = []
     private pendingControllerRemovals: Array<number> = []
 
+    private debugLogger: ((message: string) => void) | null = null
+    private missingControllerInputLogged: Set<number> = new Set()
+
     private touchSupported: boolean | null = null
 
     constructor(config?: StreamInputConfig) {
@@ -89,6 +92,14 @@ export class StreamInput {
         if (config) {
             this.setConfig(config)
         }
+    }
+
+    setDebugLogger(logger: (message: string) => void) {
+        this.debugLogger = logger
+    }
+
+    private logDebug(message: string) {
+        this.debugLogger?.(message)
     }
 
     private getDataChannel(transport: Transport, id: TransportChannelIdValue): DataTransportChannel {
@@ -657,6 +668,7 @@ export class StreamInput {
 
         if (this.pendingControllerAdds.length > 0) {
             const pendingAdds = this.pendingControllerAdds.splice(0)
+            this.logDebug(`[Controller] Flushing ${pendingAdds.length} pending add(s)`)
             for (const pending of pendingAdds) {
                 this.sendControllerAdd(pending.id, pending.supportedButtons, pending.capabilities)
             }
@@ -664,6 +676,7 @@ export class StreamInput {
 
         if (this.pendingControllerRemovals.length > 0) {
             const pendingRemovals = this.pendingControllerRemovals.splice(0)
+            this.logDebug(`[Controller] Flushing ${pendingRemovals.length} pending removal(s)`)
             for (const id of pendingRemovals) {
                 this.sendControllerRemove(id)
             }
@@ -920,6 +933,7 @@ export class StreamInput {
         if (!this.controllers) {
             this.pendingControllerRemovals = this.pendingControllerRemovals.filter(existing => existing !== id)
             this.pendingControllerAdds.push({ id, supportedButtons, capabilities })
+            this.logDebug(`[Controller] Queue add id=${id} (controllers channel not ready)`)
             return
         }
 
@@ -930,12 +944,14 @@ export class StreamInput {
         this.buffer.putU32(supportedButtons)
         this.buffer.putU16(capabilities)
 
+        this.logDebug(`[Controller] Send add id=${id}`)
         trySendChannel(this.controllers, this.buffer)
     }
     sendControllerRemove(id: number) {
         if (!this.controllers) {
             this.pendingControllerAdds = this.pendingControllerAdds.filter(existing => existing.id !== id)
             this.pendingControllerRemovals.push(id)
+            this.logDebug(`[Controller] Queue remove id=${id} (controllers channel not ready)`)
             return
         }
 
@@ -944,6 +960,7 @@ export class StreamInput {
         this.buffer.putU8(1)
         this.buffer.putU8(id)
 
+        this.logDebug(`[Controller] Send remove id=${id}`)
         trySendChannel(this.controllers, this.buffer)
     }
     // Values
@@ -954,10 +971,15 @@ export class StreamInput {
 
         const controllerChannel = this.controllerInputs[id]
 
+        if (!controllerChannel && !this.missingControllerInputLogged.has(id)) {
+            this.missingControllerInputLogged.add(id)
+            this.logDebug(`[Controller] Missing controller channel for id=${id}`)
+        }
+
         const estimatedBufferedBytes = controllerChannel?.estimatedBufferedBytes()
         if (controllerChannel && estimatedBufferedBytes != null && estimatedBufferedBytes > PACKET_SIZE_BYTES) {
             // Only send packets when we can handle them
-            console.debug(`dropping controller packet for ${id} because the buffer amount is large enough: ${controllerChannel.estimatedBufferedBytes()}`)
+            this.logDebug(`[Controller] Dropping packet for id=${id} (buffered=${estimatedBufferedBytes})`)
             return
         }
 
