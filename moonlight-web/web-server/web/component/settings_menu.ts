@@ -31,6 +31,7 @@ export type Settings = {
     playAudioLocal: boolean
     audioSampleQueueSize: number
     mouseScrollMode: MouseScrollMode
+    touchDisableMouseInput: boolean
     controllerConfig: ControllerConfig
     dataTransport: TransportType
     toggleFullscreenWithKeybind: boolean
@@ -115,6 +116,7 @@ export class StreamSettingsComponent implements Component {
 
     private mouseHeader: HTMLHeadingElement = document.createElement("h2")
     private mouseScrollMode: SelectComponent
+    private touchDisableMouseInput: InputComponent
 
     private controllerHeader: HTMLHeadingElement = document.createElement("h2")
     private controllerInvertAB: InputComponent
@@ -398,6 +400,12 @@ export class StreamSettingsComponent implements Component {
         this.mouseScrollMode.addChangeListener(this.onSettingsChange.bind(this))
         this.mouseScrollMode.mount(this.divElement)
 
+        this.touchDisableMouseInput = new InputComponent("touchDisableMouseInput", "checkbox", "Disable mouse input when touch controller is shown", {
+            checked: settings?.touchDisableMouseInput ?? defaultSettings_.touchDisableMouseInput
+        })
+        this.touchDisableMouseInput.addChangeListener(this.onSettingsChange.bind(this))
+        this.touchDisableMouseInput.mount(this.divElement)
+
         // Controller
         if (window.isSecureContext) {
             this.controllerHeader.innerText = "Controller"
@@ -522,6 +530,7 @@ export class StreamSettingsComponent implements Component {
         settings.audioSampleQueueSize = parseInt(this.audioSampleQueueSize.getValue())
 
         settings.mouseScrollMode = this.mouseScrollMode.getValue() as any
+        settings.touchDisableMouseInput = this.touchDisableMouseInput.isChecked()
 
         settings.controllerConfig.invertAB = this.controllerInvertAB.isChecked()
         settings.controllerConfig.invertXY = this.controllerInvertXY.isChecked()

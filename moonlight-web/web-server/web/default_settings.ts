@@ -37,6 +37,7 @@ const trueDefaultSettings: Settings =
     "audioSampleQueueSize": 20,
     // possible values: "highres", "normal"
     "mouseScrollMode": "highres",
+    "touchDisableMouseInput": false,
     "controllerConfig": {
         "invertAB": false,
         "invertXY": false,

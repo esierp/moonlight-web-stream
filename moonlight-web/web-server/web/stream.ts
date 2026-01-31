@@ -98,6 +98,7 @@ class ViewerApp implements Component {
 
     private inputConfig: StreamInputConfig = defaultStreamInputConfig()
     private previousMouseMode: MouseMode
+    private previousTouchMode: StreamInputConfig["touchMode"] | null = null
     private toggleFullscreenWithKeybind: boolean
     private hasShownFullscreenEscapeWarning = false
 
@@ -713,6 +714,20 @@ class ViewerApp implements Component {
         }
         const shouldShow = this.touchControllerEnabled && this.isFullscreen()
         this.touchController.setVisible(shouldShow)
+
+        if (this.settings.touchDisableMouseInput) {
+            if (shouldShow) {
+                if (this.previousTouchMode == null) {
+                    this.previousTouchMode = this.inputConfig.touchMode
+                }
+                this.inputConfig.touchMode = "touch"
+                this.setInputConfig(this.inputConfig)
+            } else if (this.previousTouchMode != null) {
+                this.inputConfig.touchMode = this.previousTouchMode
+                this.previousTouchMode = null
+                this.setInputConfig(this.inputConfig)
+            }
+        }
     }
 
     mount(parent: HTMLElement): void {
