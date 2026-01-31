@@ -67,7 +67,7 @@ export class CanvasFrameDrawPipe implements FrameVideoRenderer {
     private drawCurrentFrameIfReady(): void {
         const frame = this.currentFrame
         const { context, error } = this.base.useCanvasContext("2d")
-        if (!frame || error) {
+        if (!frame || error || !context) {
             return
         }
 
